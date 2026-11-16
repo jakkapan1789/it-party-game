@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { rename, writeFile } from 'node:fs/promises';
+import { rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import express, { Router, type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
+import sharp from 'sharp';
 import { z } from 'zod';
 import { pinMatches } from '../auth';
 import { QUESTIONS_FILE, questionSchema } from '../games/pickImage';
@@ -15,7 +16,7 @@ import { buildReport, listReports, loadReport } from '../core/report';
 import type { Room } from '../core/types';
 import { UPLOADS_DIR } from '../paths';
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // generous: uploads are shrunk right after (see shrinkUpload)
 const MAX_QUESTIONS = 100;
 // SVG is deliberately excluded: user-uploaded SVG served from our origin can carry script.
 const EXT_BY_MIME: Record<string, string> = {
@@ -81,6 +82,37 @@ const upload = multer({
   limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype in EXT_BY_MIME),
 }).single('image');
+
+/**
+ * Every phone downloads each question image at the same moment, so a 4 MB camera photo
+ * becomes hundreds of MB on the venue Wi-Fi. Re-encode uploads as WebP no larger than
+ * UPLOAD_MAX_PX (fixing EXIF rotation) and drop the original. GIFs are only checked, not
+ * re-encoded (keeps the animation). Returns the served file name, or null when the bytes
+ * aren't a decodable image (the file is removed): the mime type is the browser's claim only.
+ */
+const UPLOAD_MAX_PX = 1024;
+async function shrinkUpload(file: string): Promise<string | null> {
+  const parsed = path.parse(file);
+  const tmp = path.join(parsed.dir, `.${parsed.name}.webp.tmp`);
+  try {
+    if (parsed.ext === '.gif') {
+      await sharp(file).metadata();
+      return parsed.base;
+    }
+    await sharp(file)
+      .rotate()
+      .resize({ width: UPLOAD_MAX_PX, height: UPLOAD_MAX_PX, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(tmp);
+  } catch {
+    await Promise.all([unlink(file), unlink(tmp)].map((p) => p.catch(() => {})));
+    return null;
+  }
+  const out = path.join(parsed.dir, `${parsed.name}.webp`);
+  await rename(tmp, out); // replaces the original in place when it was already .webp
+  if (out !== file) await unlink(file);
+  return `${parsed.name}.webp`;
+}
 
 export function adminApi(getRoom: (code: string) => Room | undefined): Router {
   const r = Router();
@@ -170,7 +202,10 @@ export function adminApi(getRoom: (code: string) => Room | undefined): Router {
       }
       if (err) return void res.status(500).json({ error: 'upload_failed' });
       if (!req.file) return void res.status(415).json({ error: 'unsupported_type' });
-      res.json({ src: `/uploads/${req.file.filename}` });
+      const file = req.file;
+      shrinkUpload(file.path)
+        .then((name) => (name ? res.json({ src: `/uploads/${name}` }) : res.status(415).json({ error: 'unsupported_type' })))
+        .catch(() => res.status(500).json({ error: 'upload_failed' }));
     });
   });
 

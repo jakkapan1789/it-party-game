@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '@ng/shared';
 import { RoomManager } from './core/RoomManager';
@@ -32,6 +33,9 @@ const lanIps = () =>
 const app = express();
 const rooms = new RoomManager(new MemoryRoomStore());
 app.use(cors());
+// gzip JS/CSS/JSON (WebP is already compressed and gets skipped). Socket.io sits on the http
+// server, not this app, so it is unaffected.
+app.use(compression());
 app.get('/api/health', (_req, res) => res.json({ ok: true, serverNow: Date.now() }));
 // Lets the admin page build a QR URL that phones on the LAN can actually reach.
 app.get('/api/lan', (_req, res) => res.json({ ips: lanIps(), publicUrl: process.env.PUBLIC_URL ?? null }));
@@ -49,9 +53,22 @@ app.use(
 );
 
 // Production: serve the built React app from the same port.
+// Vite puts a content hash in every file under /assets, so those can be cached for a year;
+// index.html (and the SPA fallback) must always be revalidated so a deploy shows up at once.
 if (existsSync(CLIENT_DIST)) {
-  app.use(express.static(CLIENT_DIST));
-  app.get('*', (_req, res) => res.sendFile(path.join(CLIENT_DIST, 'index.html')));
+  app.use(
+    express.static(CLIENT_DIST, {
+      index: false,
+      setHeaders: (res, file) => {
+        const hashed = file.startsWith(path.join(CLIENT_DIST, 'assets') + path.sep);
+        res.setHeader('Cache-Control', hashed ? 'public, max-age=31536000, immutable' : 'no-cache');
+      },
+    }),
+  );
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
 }
 
 const httpServer = createServer(app);

@@ -200,7 +200,7 @@ export const th = {
     needPrompt: 'ใส่โจทย์ให้ครบทุกข้อ',
     needImages: 'ใส่รูปให้ครบทั้ง 2 ภาพในทุกข้อ',
     needOne: 'ต้องมีอย่างน้อย 1 ข้อ',
-    uploadFailed: 'อัปโหลดไม่สำเร็จ (รองรับ JPG/PNG/WebP/GIF ไม่เกิน 5 MB)',
+    uploadFailed: 'อัปโหลดไม่สำเร็จ (รองรับ JPG/PNG/WebP/GIF ไม่เกิน 15 MB)',
     saveFailed: 'บันทึกไม่สำเร็จ',
     confirmDelete: 'กดอีกครั้งเพื่อลบ',
   },

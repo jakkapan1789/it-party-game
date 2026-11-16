@@ -17,6 +17,7 @@ import { HostShell } from '../lobby/HostShell';
 import { roomCodePanelUrl } from '../lobby/assets';
 import { Avatar } from '../mascot/Avatar';
 import { loadSelection, resolveSelection, startOnReturn, useCatalog } from '../lib/packages';
+import { IN_GAME_ART, warmImages } from '../lib/preload';
 import { SLOT_H, SLOT_W, SLOT_X, SLOT_Y } from '../lobby/RoomCodeInput';
 
 type Stage = 'login' | 'menu' | 'room';
@@ -58,6 +59,9 @@ export default function AdminRoom() {
   const [showPlayers, setShowPlayers] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
   const joinBase = useJoinBase();
+  useEffect(() => {
+    if (stage === 'room') warmImages(IN_GAME_ART);
+  }, [stage]);
 
   useEffect(() => {
     const auth = () => {

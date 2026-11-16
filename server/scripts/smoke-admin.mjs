@@ -32,12 +32,13 @@ const unauth = await fetch(`${base}/api/admin/upload`, { method: 'POST', body: n
 check('upload without PIN → 401', unauth.status === 401);
 check('non-image rejected (415)', (await upload(new TextEncoder().encode('<script>1</script>'), 'text/html', 'a.html')).status === 415);
 check('svg rejected (415)', (await upload(new TextEncoder().encode('<svg/>'), 'image/svg+xml', 'a.svg')).status === 415);
-const big = await upload(new Uint8Array(5 * 1024 * 1024 + 10), 'image/png');
+const big = await upload(new Uint8Array(15 * 1024 * 1024 + 10), 'image/png');
 check('oversize rejected (413)', big.status === 413);
+check('bytes that are not an image rejected (415)', (await upload(new Uint8Array(1000), 'image/png', 'fake.png')).status === 415);
 
 const ok = await upload(png, 'image/png', '../../evil name.png');
 const { src } = await ok.json();
-check('png accepted with random server-side name', ok.status === 200 && /^\/uploads\/[0-9a-f]{18}\.png$/.test(src), src);
+check('png accepted, re-encoded to webp under a random name', ok.status === 200 && /^\/uploads\/[0-9a-f]{18}\.webp$/.test(src), src);
 const served = await fetch(`${base}${src}`);
 check('uploaded image is served with nosniff', served.status === 200 && served.headers.get('x-content-type-options') === 'nosniff');
 

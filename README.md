@@ -53,6 +53,8 @@ npm start       # Express เสิร์ฟทั้ง API, socket และ�
 
 ### Deploy บน Render (แนะนำ: Web Service เดียว)
 
+> ขั้นตอนละเอียดทีละคลิก + วิธีใส่โดเมนจาก Cloudflare: ดู [DEPLOY.md](DEPLOY.md)
+
 หน้าเว็บ, API และ Socket.io ออกจาก server ตัวเดียวพอร์ตเดียว จึง **ไม่ต้องแยก** frontend/backend
 (Vercel ใช้กับเกมนี้ไม่ได้ เพราะไม่รองรับ WebSocket server ที่ต้องเปิดค้าง; ถ้าจะวางหน้าเว็บบน Vercel ต้องแก้โค้ดให้ต่อ socket/API ข้ามโดเมนก่อน)
 

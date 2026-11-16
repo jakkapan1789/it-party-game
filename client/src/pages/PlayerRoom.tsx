@@ -12,12 +12,15 @@ import { WaitingRoom } from '../lobby/WaitingRoom';
 import { GameBackdrop } from '../lobby/GameBackdrop';
 import { getGameModule } from '../games';
 import { RoundIntro } from '../core/QuestionIntro';
+import { IN_GAME_ART, warmImages } from '../lib/preload';
 
 export default function PlayerRoom() {
   const nav = useNavigate();
   const feed = useGameFeed();
   usePhaseMusic(feed.phase);
   const [online, setOnline] = useState(socket.connected);
+  // while they wait in the lobby, pull in the question/result art so round 1 shows up complete
+  useEffect(() => warmImages(IN_GAME_ART), []);
 
   useEffect(() => {
     if (!loadPlayerSession()) {
