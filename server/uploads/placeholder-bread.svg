@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#FFEBC2"/>
+  <circle cx="200" cy="190" r="150" fill="#ffffff" opacity=".55"/>
+  <text x="200" y="260" font-size="210" text-anchor="middle" font-family="Apple Color Emoji, Noto Color Emoji, Segoe UI Emoji, sans-serif">🍞</text>
+  <text x="200" y="382" font-size="22" text-anchor="middle" font-family="sans-serif" fill="#2B1D14" opacity=".55">placeholder</text>
+</svg>

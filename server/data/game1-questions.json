@@ -1,0 +1,82 @@
+[
+  {
+    "id": "q2",
+    "prompt": "เลือกภาพที่เป็นไก่ทอด",
+    "images": [
+      {
+        "id": "a",
+        "src": "/uploads/placeholder-dog2.svg"
+      },
+      {
+        "id": "b",
+        "src": "/uploads/placeholder-chicken.svg"
+      }
+    ],
+    "correctImageId": "b",
+    "timeLimitSec": 10
+  },
+  {
+    "id": "q1",
+    "prompt": "เลือกภาพที่เป็นหมา",
+    "images": [
+      {
+        "id": "a",
+        "src": "/uploads/placeholder-dog.svg"
+      },
+      {
+        "id": "b",
+        "src": "/uploads/placeholder-muffin.svg"
+      }
+    ],
+    "correctImageId": "a",
+    "timeLimitSec": 10
+  },
+  {
+    "id": "q3",
+    "prompt": "เลือกภาพที่เป็นแมว",
+    "images": [
+      {
+        "id": "a",
+        "src": "/uploads/placeholder-cat.svg"
+      },
+      {
+        "id": "b",
+        "src": "/uploads/placeholder-bread.svg"
+      }
+    ],
+    "correctImageId": "a",
+    "timeLimitSec": 8
+  },
+  {
+    "id": "q4",
+    "prompt": "เลือกภาพที่เป็นนกฮูก",
+    "images": [
+      {
+        "id": "a",
+        "src": "/uploads/placeholder-cookie.svg"
+      },
+      {
+        "id": "b",
+        "src": "/uploads/placeholder-owl.svg"
+      }
+    ],
+    "correctImageId": "b",
+    "timeLimitSec": 10
+  },
+  {
+    "id": "q5",
+    "prompt": "เลือกภาพที่เป็นต้นไม้",
+    "images": [
+      {
+        "id": "a",
+        "src": "/uploads/placeholder-tree.svg"
+      },
+      {
+        "id": "b",
+        "src": "/uploads/placeholder-broccoli.svg"
+      }
+    ],
+    "correctImageId": "a",
+    "timeLimitSec": 12
+  }
+]

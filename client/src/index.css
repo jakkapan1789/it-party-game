@@ -1,0 +1,880 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #2B1D14;
+  --color-cream: #FFF4DC;
+  --color-night: #241538;
+  --color-sunset-top: #F4A25B;
+  --color-sunset-bottom: #C9607A;
+  --color-ribbon: #F7B733;
+  --color-ribbon-dark: #C98A12;
+  --color-go: #6BCB3C;
+  --color-go-dark: #3F8F1E;
+  --color-stop: #D9534F;
+  --color-stop-dark: #9C2F2B;
+  --color-alt: #F2D14B;
+  --color-alt-dark: #B8962A;
+  --font-body: 'Kanit', 'Mitr', sans-serif;
+  --font-display: 'Lilita One', 'Kanit', sans-serif;
+}
+
+/* on <html> (not body) so the fixed <NightScene /> at z-index -10 paints above it */
+html { background: #0B1FA0 linear-gradient(to bottom, #0B1FA0 0%, #2A3FB5 45%, #7B5D98 100%) fixed; }
+html, body, #root { min-height: 100dvh; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Cartoon outlined text: stroke painted behind the fill */
+.text-outline {
+  -webkit-text-stroke: 5px var(--color-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--color-ink);
+  font-family: var(--font-display);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+/* Smaller outlined label for buttons / bars */
+.text-outline-sm {
+  -webkit-text-stroke: 4px var(--color-ink);
+  paint-order: stroke fill;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+/* Solid (non-blurred) bottom shadow card */
+.card-solid {
+  background: var(--color-cream);
+  border: 4px solid #5B3A29;
+  border-radius: 12px;
+  box-shadow: 0 6px 0 var(--color-ink);
+}
+
+@keyframes timer-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px) rotate(-0.4deg); }
+  75% { transform: translateX(3px) rotate(0.4deg); }
+}
+@keyframes timer-flash {
+  50% { opacity: 0.35; }
+}
+@keyframes timer-sec-pop {
+  0% { transform: scale(1.8); }
+  100% { transform: scale(1); }
+}
+@keyframes wait-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+.wait-dot { display: inline-block; animation: wait-dot 1s ease-in-out infinite; }
+.timer-frame { position: relative; width: min(100%, 560px); margin: 0 auto; aspect-ratio: 1961 / 200; container-type: inline-size; filter: drop-shadow(0 3px 4px rgba(10, 4, 40, 0.5)); }
+/* the track area of the art (2.3% / 2.4% / 17.5% / 21.5% insets); dark purple behind the fill, like the original track */
+.host-shell .timer-frame { width: min(100%, 420px); } /* projector: keep it slimmer so the whole question screen fits 720p */
+.timer-well { position: absolute; left: 2.3%; right: 2.4%; top: 17.5%; bottom: 21.5%; border-radius: 999px; overflow: hidden; background: #2A1038; }
+.timer-art { position: absolute; inset: 0; z-index: 1; background: center / 100% 100% no-repeat; pointer-events: none; }
+.timer-secs {
+  position: absolute; z-index: 2; left: 50.9%; top: 47.5%; translate: -50% -50%; width: 6.2%; display: grid; place-items: center; pointer-events: none;
+  font-family: var(--font-display); font-size: 4cqw; line-height: 1; color: #fff; -webkit-text-stroke: 0.7cqw #2A0E5A; paint-order: stroke fill;
+}
+.timer-fill { background-image: linear-gradient(to bottom, rgba(255,255,255,.35) 0 40%, transparent 40%); will-change: transform; }
+.timer-urgent { animation: timer-shake 0.25s linear infinite; }
+.timer-flash { background: #fff; opacity: 0; animation: timer-flash 0.5s steps(2) infinite; }
+.timer-sec-pop { animation: timer-sec-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-urgent, .timer-flash, .timer-sec-pop, .wait-dot { animation: none; }
+}
+
+/* ---- In-game look (player screens): purple & gold glass, red banners, parchment cards ---- */
+.stat-pill {
+  background: linear-gradient(#6B4AA3 50%, #4A2F80 50%); border: 3px solid #F7B733;
+  box-shadow: 0 3px 0 var(--color-ink), 0 0 10px rgba(255, 196, 80, 0.35);
+}
+.stat-icon { border: 3px solid #FFE08A; box-shadow: 0 0 0 2px var(--color-ink); }
+.timer-track {
+  border: 3px solid #F7B733; background: #241047; box-shadow: 0 3px 0 var(--color-ink), 0 0 10px rgba(255, 196, 80, 0.3);
+}
+/* ---- Quiz picture frame (ornate A / B card). The art's window is transparent: the picture sits under it. ----
+   Vars come from QuizFrame: --frame --ratio --wl/--wt/--wr/--wb (window insets) --mx/--my/--md (magnifier). States are
+   a glow around the frame's own outline (drop-shadow), drawn here because unlayered CSS beats utility classes. */
+.quiz-card {
+  position: relative; width: 100%; aspect-ratio: var(--ratio, 806 / 828);
+  filter: drop-shadow(0 5px 5px rgba(10, 4, 40, 0.5)); transition: filter 0.2s;
+}
+.quiz-window { position: absolute; left: var(--wl); top: var(--wt); right: var(--wr); bottom: var(--wb); overflow: hidden; border-radius: 2.5%; background: #241047; }
+.quiz-art { position: absolute; inset: 0; background: var(--frame) center / 100% 100% no-repeat; pointer-events: none; }
+.quiz-hit { position: absolute; inset: 0; z-index: 2; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.quiz-zoom {
+  position: absolute; z-index: 3; left: var(--mx); top: var(--my); width: var(--md); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%;
+  background: none; cursor: zoom-in; -webkit-tap-highlight-color: transparent;
+}
+.quiz-card.is-selected { filter: drop-shadow(0 0 3px #FFF1B8) drop-shadow(0 0 10px #FF8A1F) drop-shadow(0 0 18px rgba(255, 138, 31, 0.9)); }
+.quiz-card.is-correct { filter: drop-shadow(0 0 3px #E4FFD2) drop-shadow(0 0 10px #6BCB3C) drop-shadow(0 0 20px rgba(107, 203, 60, 0.9)); }
+.quiz-card.is-wrong { filter: drop-shadow(0 0 3px #FFE0DD) drop-shadow(0 0 10px #D9534F) drop-shadow(0 0 18px rgba(217, 83, 79, 0.85)); }
+.quiz-chip {
+  position: absolute; z-index: 4; right: 3%; bottom: -1%; pointer-events: none; white-space: nowrap; color: #fff; font-weight: 700;
+  border: 3px solid var(--color-ink); box-shadow: 0 2px 0 var(--color-ink);
+}
+.quiz-chip.is-picked { padding: 1px 10px; border-radius: 999px; font-size: 13px; background: #FF8A1F; }
+.quiz-chip.is-mark { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; line-height: 1; }
+.quiz-chip.is-go { background: var(--color-go); }
+.quiz-chip.is-stop { background: var(--color-stop); }
+/* cards inside the player shell (result, leaderboard, final): parchment with a gold rim */
+.app-shell .card-solid,
+.host-shell .card-solid {
+  background: linear-gradient(#FFF9E6, #FBE8BE); border: 4px solid #F7B733; border-radius: 16px;
+  box-shadow: 0 0 0 2px #7A3E12, 0 6px 0 var(--color-ink), 0 0 16px rgba(255, 196, 80, 0.3);
+}
+/* ---- Host waiting room: players frame (gold cherry-blossom frame, 9-slice) and portrait tiles ----
+   --fk scales the artwork (saved at 800px wide: corners 165×106 / 165×76, tab 408×111). */
+.players-frame {
+  --fk: 0.7; position: relative; flex: 1 1 auto; min-height: 160px;
+  padding: calc(111px * var(--fk) + 8px) calc(25px * var(--fk) + 16px) calc(35px * var(--fk) + 14px);
+}
+.players-frame::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border-style: solid; border-color: transparent;
+  border-width: calc(106px * var(--fk)) calc(165px * var(--fk)) calc(76px * var(--fk)) calc(165px * var(--fk));
+  border-image: url('./lobby/assets/players-frame.webp') 106 165 76 165 fill stretch;
+  filter: drop-shadow(0 8px 12px rgba(10, 4, 40, 0.45));
+}
+.players-tab { position: absolute; top: calc(-1px * var(--fk)); left: 50%; width: calc(408px * var(--fk)); height: auto; translate: -50% 0; pointer-events: none; }
+.players-title {
+  position: absolute; top: calc(54px * var(--fk)); left: 50%; translate: -50% -50%; margin: 0; white-space: nowrap;
+  font-family: var(--font-display); font-size: calc(62px * var(--fk)); line-height: 1; color: #FFF6D0;
+  -webkit-text-stroke: calc(7px * var(--fk)) #5C0A10; paint-order: stroke fill; text-shadow: 0 2px 0 #5C0A10;
+}
+.player-grid {
+  position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 12px; margin: 0; padding: 4px 2px 8px;
+  max-height: max(150px, calc(100vh - 710px)); overflow-y: auto; list-style: none; /* the frame always fits the screen; extra players scroll inside it */
+  /* scrolling stays inside the list: reaching its end must not drag the whole screen along */
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+}
+.player-tile { width: clamp(88px, 11vh, 128px); }
+/* fit mode (host): the frame takes the leftover height; tile size comes from JS (--tile) so nobody is scrolled out of sight */
+.players-frame.is-fit { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.players-frame.is-fit .player-grid { flex: 1 1 auto; min-height: 0; max-height: none; align-content: flex-start; overflow-x: hidden; }
+.players-frame.is-fit .player-tile { width: var(--tile, 96px); }
+.players-frame.is-fit .player-plate { font-size: clamp(9px, calc(var(--tile, 96px) * 0.16), 17px); padding: 1px 4px; margin-top: calc(var(--tile, 96px) * -0.12); border-width: 2px; }
+.players-frame.is-fit .player-kick { width: clamp(16px, calc(var(--tile, 96px) * 0.22), 24px); height: clamp(16px, calc(var(--tile, 96px) * 0.22), 24px); font-size: 10px; top: -4px; right: -4px; }
+/* the avatar image is already a gold-framed portrait: the tile just shows it, lifted by a soft shadow */
+.player-portrait { position: relative; aspect-ratio: 1; display: grid; place-items: center; filter: drop-shadow(0 3px 0 var(--color-ink)); }
+.player-portrait img { width: 100%; height: 100%; }
+.player-plate {
+  position: relative; margin: -12px 5% 0; padding: 3px 8px; border-radius: 999px; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: clamp(13px, 1.7vh, 17px); line-height: 1.25; color: #fff;
+  background: linear-gradient(#6D49BC 50%, #4A2D94 50%); border: 3px solid #D3BFFF; box-shadow: 0 3px 0 var(--color-ink);
+}
+.player-kick {
+  position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 99px; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; line-height: 1; color: #fff; background: var(--color-stop); border: 2px solid var(--color-ink); box-shadow: 0 2px 0 var(--color-ink);
+  opacity: 0.85; transition: transform 0.1s, opacity 0.1s;
+}
+.player-kick:hover { opacity: 1; transform: scale(1.12); }
+.player-kick:active { transform: scale(0.95); }
+@media (max-height: 800px) { .players-frame { --fk: 0.55; } }
+/* ---- Dragon frame (player waiting room, profile dialog) ----
+   Art units: the trimmed artwork is 1048 wide, 1398 tall; --k = 1 art unit. Slices (saved 760px image): top 247 / bottom 194
+   = 340 / 268 art units. Content sits clear of the lanterns (x ≤ 186) and the bottom corner clouds. */
+.dragon-frame {
+  --k: calc(var(--fw, 360px) / 1048);
+  position: relative; width: var(--fw, 360px); margin: 0 auto; box-sizing: border-box;
+  min-height: calc(var(--k) * 1058); /* lanterns end at 790, bottom slice is 268 */
+  padding: calc(var(--k) * 322) calc(var(--k) * 190) calc(var(--k) * 175);
+  display: flex; flex-direction: column;
+}
+.dragon-frame::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-style: solid; border-color: transparent; border-width: calc(var(--k) * 340) 0 calc(var(--k) * 268) 0;
+  border-image: var(--dragon-art) 247 0 194 0 fill stretch;
+  filter: drop-shadow(0 8px 12px rgba(10, 4, 40, 0.5));
+}
+.dragon-frame > * { position: relative; z-index: 2; }
+.dragon-frame > .dragon-lantern { position: absolute; z-index: 1; top: calc(var(--k) * 338); width: calc(var(--k) * 187); height: auto; pointer-events: none; }
+.dragon-lantern.is-left { left: calc(var(--k) * -1); transform-origin: 50% 0; animation: lantern-swing-sm 3.6s ease-in-out infinite alternate; }
+.dragon-lantern.is-right { left: calc(var(--k) * 862); transform-origin: 50% 0; animation: lantern-swing-sm 3.6s ease-in-out -1.8s infinite alternate; }
+@keyframes lantern-swing-sm { from { rotate: -2.5deg; } to { rotate: 2.5deg; } }
+.dragon-title {
+  flex: none; margin: 0 0 calc(var(--k) * 14); text-align: center; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 800; font-size: calc(var(--k) * 72); line-height: 1.15; color: #B3141C;
+  -webkit-text-stroke: calc(var(--k) * 9) #FFE08A; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(122, 20, 10, 0.35);
+}
+.dragon-frame .player-grid { flex: 1 1 auto; min-height: 0; max-height: none; }
+.stage-frame .dragon-frame .player-grid { gap: 10px 6px; }
+/* three per row even when the frame shrinks on short screens */
+.stage-frame .dragon-frame .player-tile { width: clamp(52px, calc(var(--k) * 196), 64px); }
+@media (prefers-reduced-motion: reduce) { .dragon-lantern { animation: none; } }
+
+/* player waiting room: the frame is as wide as the stage allows, but never so tall that it doesn't fit */
+.stage-frame { container-type: size; align-items: center; }
+.stage-frame .dragon-frame { --fw: min(100cqw, calc(100cqh * 1048 / 1058)); flex: 1 1 auto; height: 100%; max-height: 100%; } /* stretches (9-slice) to fill the whole stage */
+
+/* ---- Profile sheet (change name / avatar): the dragon frame as a centred dialog ---- */
+.profile-overlay {
+  position: fixed; inset: 0; z-index: 70; display: flex; overflow-y: auto; overscroll-behavior: contain; padding: 12px;
+  background: rgba(10, 6, 44, 0.62); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.profile-sheet { flex: none; margin: auto; --fw: min(calc(100vw - 24px), 400px); }
+.avatar-picker { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; justify-items: center; padding: 4px 4px 12px; }
+.avatar-pick {
+  position: relative; width: min(84px, 100%); aspect-ratio: 1; padding: 0; border: 0; background: none; cursor: pointer;
+  filter: drop-shadow(0 3px 0 var(--color-ink)) saturate(0.8); opacity: 0.78; transition: transform 0.14s, opacity 0.14s, filter 0.14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatar-pick img { width: 100%; height: 100%; pointer-events: none; }
+.avatar-pick.is-picked { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 3px 0 var(--color-ink)); }
+.avatar-pick:focus-visible { outline: 3px solid #FFE08A; outline-offset: 3px; border-radius: 18px; }
+.pick-check {
+  position: absolute; right: -7px; bottom: -7px; width: 26px; height: 26px; border-radius: 99px; display: grid; place-items: center;
+  font-size: 15px; font-weight: 800; line-height: 1; color: #fff; background: var(--color-go); border: 3px solid var(--color-ink);
+  box-shadow: 0 2px 0 var(--color-ink); transform: scale(0); transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.avatar-pick.is-picked .pick-check { transform: scale(1); }
+.profile-sheet .nick-panel { margin: 0 -10px; }
+.profile-actions { position: relative; display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.player-tile.is-me .player-plate { background: linear-gradient(#F9C25C 50%, #E58E1E 50%); border-color: #FFF0B0; color: #3B1A12; }
+.player-more {
+  align-self: center; padding: 4px 14px; border-radius: 999px; font-family: var(--font-display); font-size: 1.1rem; line-height: 1.2; color: #fff;
+  background: linear-gradient(#6D49BC 50%, #4A2D94 50%); border: 3px solid #D3BFFF; box-shadow: 0 3px 0 var(--color-ink);
+}
+/* player waiting room: the frame fills the space between the room code and the nickname panel; the list scrolls inside it */
+.stage-frame { position: absolute; inset: 6px 0; display: flex; flex-direction: column; justify-content: center; }
+.stage-frame .players-frame { --fk: 0.4; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+/* the list's touch area reaches almost to the frame's sides, so a swipe that starts near the edge still scrolls the list */
+.stage-frame .player-grid { flex: 1 1 auto; min-height: 0; max-height: none; gap: 12px 12px; margin: 0 -22px; padding: 4px 24px 8px; }
+.stage-frame .player-tile { width: 68px; }
+.stage-frame .player-plate { font-size: 12px; padding: 2px 4px; margin-left: -5px; margin-right: -5px; }
+
+/* red & gold banner (RibbonBanner's band) */
+.ribbon-band {
+  border: 4px solid #F7B733;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 0 42%, transparent 42%), linear-gradient(#C9222E, #8E1019);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 5px 0 var(--color-ink), 0 0 18px rgba(255, 150, 60, 0.4);
+}
+/* host screen: the big room code, scaled up from the player panel (its digits are sized from the panel width) */
+.host-code { margin: 0 auto; filter: drop-shadow(0 8px 14px rgba(10, 4, 40, 0.5)); }
+.host-code .code-digit { font-size: 7.4cqw; }
+/* dims the painted scene behind the in-game pages so cards and text stay readable */
+.game-dim {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(rgba(10, 6, 44, 0.66), rgba(10, 6, 44, 0.46) 45%, rgba(10, 6, 44, 0.66));
+}
+.game-dim.is-light { background: linear-gradient(rgba(10, 6, 44, 0.3), rgba(10, 6, 44, 0.12) 45%, rgba(10, 6, 44, 0.35)); }
+
+/* ---- Scoreboard frame (in-game header). Slots are % of the trimmed art (2102×681): purple pills at x 26.3–47.2% and 61.2–81.7%, y 45.7–70.3% ---- */
+.scoreboard-wrap { width: 100%; display: flex; justify-content: center; }
+.scoreboard {
+  position: relative; width: min(100%, 340px); aspect-ratio: 2102 / 681; container-type: inline-size;
+  background: center / 100% 100% no-repeat; filter: drop-shadow(0 4px 8px rgba(10, 4, 40, 0.5));
+}
+.sb-slot {
+  position: absolute; top: 45.7%; height: 24.7%; display: flex; align-items: center; justify-content: flex-end; padding-right: 3.2cqw; box-sizing: border-box;
+  font-family: var(--font-display); font-size: 6.6cqw; line-height: 1; color: #fff; white-space: nowrap;
+  -webkit-text-stroke: 1.4cqw #2A0E5A; paint-order: stroke fill; text-shadow: 0 0.4cqw 0 #2A0E5A;
+}
+.sb-score { left: 26.3%; width: 21%; }
+.sb-count { left: 61.2%; width: 20.6%; }
+
+/* ---- Question banner (PromptBanner). Art 2016×444; the red plate is x 8.9–91%, y 34–84% ---- */
+.prompt-frame {
+  position: relative; width: min(100%, 420px); aspect-ratio: 2016 / 444; margin: 0 auto; container-type: inline-size;
+  background: center / 100% 100% no-repeat; filter: drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5));
+}
+.prompt-frame.is-host { width: min(560px, 52vw, 66vh); }
+.prompt-text {
+  position: absolute; left: 11%; width: 78%; top: 33%; height: 52%; margin: 0; overflow: hidden; display: grid; align-content: center;
+  text-align: center; font-weight: 800; line-height: 1.15; color: #fff;
+  -webkit-text-stroke: 0.9cqw #5C0A10; paint-order: stroke fill; text-shadow: 0 0.5cqw 0 #5C0A10;
+}
+
+/* Player game screens must fit one screen on any phone (nothing scrolls). The three big pieces — question banner, the
+   A/B cards, the result card — are sized from the screen HEIGHT: --fitw is the widest they may be so that all three,
+   plus the header, the bottom bar and the gaps, still fit (≈ 300px of chrome; 0.825 = width per px of height they
+   take). On tall phones it is wider than the screen and has no effect. */
+:root { --fitw: calc((100svh - 300px) * 0.825); }
+.app-shell .prompt-frame { width: min(100%, 420px, var(--fitw)); }
+.app-shell .result-frame { width: min(100%, 400px, var(--fitw)); }
+.app-shell .fit-grid { width: min(100%, var(--fitw)); margin-inline: auto; }
+.app-shell .wait-banner { width: min(80%, 300px, calc(var(--fitw) * 0.8)); }
+@media (max-height: 800px) { :root { --host-card-h: 35vh; } }
+
+/* bottom bar without its purple background / gold trim (the wait banner sits straight on the scene) */
+/* the player bottom bar never paints a background: the painted scene (and its corner branches) show behind the button / banner */
+.app-shell .app-bar-bottom { background: none; box-shadow: none; }
+.app-shell .app-bar-bottom .gold-trim { display: none; }
+.app-shell .app-bar-bottom .bar-slot { padding-bottom: 4px; }
+
+/* ---- Notice card (NoticeBanner). Art 1210×1138: cream board text y 49–66%, red plate x 12–88%, y 69–82% ---- */
+.notice-banner {
+  position: relative; width: min(92%, 340px); aspect-ratio: 1210 / 1138; margin: 0 auto; container-type: inline-size;
+  background: center / 100% 100% no-repeat; filter: drop-shadow(0 5px 7px rgba(10, 4, 40, 0.5));
+}
+.notice-banner > p { position: absolute; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; }
+.notice-title {
+  left: 10%; width: 80%; top: 49%; height: 17%; font-weight: 800; font-size: 9.2cqw; line-height: 1; color: #7A1A10;
+  text-shadow: 0 0.4cqw 0 rgba(255, 255, 255, 0.7);
+}
+.notice-sub {
+  left: 13%; width: 74%; top: 69.5%; height: 12.5%; font-weight: 800; font-size: 6.4cqw; line-height: 1; color: #fff;
+  -webkit-text-stroke: 1.2cqw #5C0A10; paint-order: stroke fill; text-shadow: 0 0.5cqw 0 #5C0A10;
+}
+
+/* ---- Rank medal (RankBadge): the layout box is shorter than the art (the crown / wreath overhang it) ---- */
+.rank-badge { --bw: 52px; position: relative; flex: none; display: block; width: calc(var(--bw) * 0.84); height: calc(var(--bw) * 0.68); }
+.rank-badge img { position: absolute; left: 50%; top: 59.4%; width: var(--bw); height: auto; translate: -50% -59.4%; pointer-events: none; }
+.rank-num {
+  position: absolute; left: 50%; top: 59.4%; translate: -50% -50%; font-family: var(--font-display); line-height: 1; color: #fff; white-space: nowrap;
+  font-size: calc(var(--bw) * 0.27); -webkit-text-stroke: calc(var(--bw) * 0.07) rgba(60, 10, 10, 0.85); paint-order: stroke fill; text-shadow: 0 calc(var(--bw) * 0.02) 0 rgba(60, 10, 10, 0.6);
+}
+.rank-badge.d3 .rank-num { font-size: calc(var(--bw) * 0.2); }
+.rank-badge.is-4 .rank-num { color: #FFF3C4; }
+
+/* ---- Final leaderboard frame (LeaderFrame). Art 1179×1269 trimmed (saved 720px wide): the top 645 and bottom 324 art units are
+   fixed, the plain middle stretches to fill the screen. Cream board: x 12–88%, from y 360 down to 185 above the bottom. ---- */
+.leader-fill { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; container-type: inline-size; }
+.leader-frame {
+  --fw: min(100cqw, 420px); --k: calc(var(--fw) / 1179);
+  position: relative; width: var(--fw); flex: 1 1 0; min-height: calc(var(--k) * 1000); container-type: inline-size; box-sizing: border-box;
+  border-style: solid; border-color: transparent; border-width: calc(var(--k) * 645) 0 calc(var(--k) * 324) 0;
+  border-image: var(--frame) 394 0 198 0 fill stretch;
+  filter: drop-shadow(0 5px 7px rgba(10, 4, 40, 0.5));
+}
+/* the board is positioned from the frame's OUTER box (border-box offsets), so these are measured from the frame's top/bottom edges */
+.leader-board {
+  position: absolute; left: 12%; right: 12%; top: calc(var(--k) * 360 - var(--k) * 645); bottom: calc(var(--k) * 185 - var(--k) * 324);
+  padding: 3cqw 0; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 2.4cqw; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: none;
+}
+.leader-board::-webkit-scrollbar { display: none; }
+/* soft fade where rows run under the board's top and bottom edges (inside the 3cqw padding, so an unscrolled first row is never faded) */
+.leader-board { -webkit-mask-image: linear-gradient(transparent, #000 3cqw, #000 calc(100% - 3cqw), transparent); mask-image: linear-gradient(transparent, #000 3cqw, #000 calc(100% - 3cqw), transparent); }
+.leader-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2.2cqw; }
+.app-shell main > div:has(.leader-fill) { height: 100%; }
+.app-shell main div:has(> .leader-fill) { min-height: 0; }
+.leader-list .lr { gap: 2cqw; padding: 0.8cqw 2cqw; --pw: 24cqw; }
+.leader-list .lr { --bw: 14.5cqw; }
+.leader-list .lr > img { width: 9cqw; height: 9cqw; }
+
+/* leave-room button (art 2068×392) */
+.exit-btn {
+  display: block; margin: 0 auto; width: min(72%, 250px); aspect-ratio: 2068 / 392; padding: 0; border: 0; cursor: pointer; background: center / 100% 100% no-repeat;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; filter: drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5)); transition: filter 0.2s;
+}
+.exit-btn:hover { filter: brightness(1.08) drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5)); }
+.exit-btn:focus-visible { outline: 3px solid #FFE08A; outline-offset: 4px; border-radius: 20px; }
+
+/* ---- Wait banner (WaitBanner). Art 1996×527; the purple plate is x 8–92%, y 31–85% ---- */
+.wait-banner {
+  position: relative; width: min(80%, 300px); aspect-ratio: 1996 / 527; margin: 0 auto; container-type: inline-size;
+  background: center / 100% 100% no-repeat; filter: drop-shadow(0 3px 5px rgba(10, 4, 40, 0.5));
+}
+.wait-banner > p {
+  position: absolute; left: 12%; width: 76%; top: 30%; height: 48%; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap;
+  font-weight: 800; font-size: 7cqw; line-height: 1; color: #fff; -webkit-text-stroke: 1cqw #2A0E5A; paint-order: stroke fill; text-shadow: 0 0.5cqw 0 #2A0E5A;
+  animation: wait-pulse 1.6s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) { .wait-banner > p { animation: none; } }
+
+/* ---- Result card (ResultFrame). Art 1709×858 → ribbon text x 26–74%, y 24–40%; points line y 52–64%; crown pill text x 36–76%, y 66–82% ---- */
+.result-frame {
+  position: relative; width: min(100%, 400px); aspect-ratio: 1709 / 858; margin: 0 auto; container-type: inline-size;
+  background: center / 100% 100% no-repeat; filter: drop-shadow(0 5px 6px rgba(10, 4, 40, 0.5));
+}
+.result-frame > * { position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; }
+.rf-headline {
+  left: 26%; width: 48%; top: 22%; height: 20%; font-family: var(--font-display); font-size: 8.4cqw; line-height: 1; color: #fff;
+  -webkit-text-stroke: 1.8cqw #6B0A12; paint-order: stroke fill; text-shadow: 0 0.7cqw 0 #6B0A12;
+}
+.rf-headline.is-correct { color: #FFF3B0; }
+.rf-headline.is-none { color: #FFD9D4; font-size: 7.2cqw; }
+.rf-points { left: 14%; width: 72%; top: 52%; height: 13%; gap: 3cqw; font-weight: 800; font-size: 5.8cqw; line-height: 1.1; color: #5C1A0A; }
+.rf-extra { display: inline-flex; transform: scale(0.72); transform-origin: left center; }
+.rf-pill {
+  left: 37%; width: 38%; top: 66.5%; height: 15.5%; font-weight: 800; font-size: 5.4cqw; line-height: 1; color: #6B3A0A;
+  text-shadow: 0 0.3cqw 0 rgba(255, 255, 255, 0.55);
+}
+.result-frame > .rf-overlay { left: 50%; top: 30%; translate: -50% -50%; pointer-events: none; }
+
+/* ---- Banner button (dragon banner, text on its green panel). Art is 2079×577; the panel is x 20.6–79.5%, y 32–82% ---- */
+.banner-btn {
+  position: relative; display: block; width: min(90%, 310px); aspect-ratio: 2079 / 577; margin: 0 auto; padding: 0; border: 0; cursor: pointer;
+  background: center / 100% 100% no-repeat; container-type: inline-size; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  filter: drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5)); transition: filter 0.2s;
+}
+.banner-btn:disabled { cursor: not-allowed; filter: saturate(0.4) brightness(0.8) drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5)); }
+.banner-btn:not(:disabled):hover { filter: brightness(1.06) drop-shadow(0 4px 6px rgba(10, 4, 40, 0.5)); }
+.banner-btn-text {
+  position: absolute; left: 20.6%; width: 58.9%; top: 32%; height: 50%; display: flex; align-items: center; justify-content: center; text-align: center;
+  font-weight: 800; font-size: 7.2cqw; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden;
+  -webkit-text-stroke: 1.3cqw #0E4A14; paint-order: stroke fill; text-shadow: 0 0.5cqw 0 #0E4A14;
+}
+
+/* Player app shell: fixed top bar, fixed bottom action bar, content between */
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-bar-top { padding-top: env(safe-area-inset-top); }
+.app-bar-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+
+/* Image placeholder while a question picture loads */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.img-skeleton {
+  background: linear-gradient(100deg, #F2E3C0 30%, #FFF4DC 50%, #F2E3C0 70%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-skeleton { animation: none; }
+}
+
+/* Report page: print as a clean white document */
+@media print {
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .card-solid { box-shadow: none; border: 1px solid #888; background: #fff; break-inside: avoid; }
+  main { color: #000; }
+  tr { break-inside: avoid; }
+}
+
+/* ---------- Night theme ---------- */
+.night-star {
+  position: absolute; width: 2px; height: 2px; border-radius: 99px; background: #fff;
+  opacity: 0.7; animation: twinkle 3.2s ease-in-out infinite;
+}
+.night-star-big { width: 3px; height: 3px; box-shadow: 0 0 6px 1px rgba(255,255,255,0.8); }
+@keyframes twinkle { 50% { opacity: 0.15; transform: scale(0.6); } }
+
+.firefly {
+  position: absolute; border-radius: 99px; background: #E9D8FF;
+  box-shadow: 0 0 8px 3px rgba(220, 180, 255, 0.75);
+  animation-name: firefly-drift, firefly-pulse;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: alternate, alternate;
+}
+.firefly-warm { background: #FFF1A8; box-shadow: 0 0 9px 3px rgba(255, 214, 90, 0.8); }
+@keyframes firefly-drift {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(14px, -22px); }
+  66% { transform: translate(-10px, -38px); }
+  100% { transform: translate(8px, -56px); }
+}
+@keyframes firefly-pulse { 0% { opacity: 0.25; } 100% { opacity: 1; } }
+
+/* Top/bottom bars: deep purple with a gold trim */
+.night-bar {
+  position: relative;
+  background:
+    radial-gradient(120% 140% at 15% 0%, rgba(176, 92, 255, 0.35), transparent 60%),
+    linear-gradient(to bottom, #2F1A57, #1C0E38);
+}
+.night-bar-top { box-shadow: 0 4px 0 var(--color-ink), 0 8px 18px rgba(10, 4, 25, 0.5); }
+.night-bar-bottom { box-shadow: 0 -4px 0 var(--color-ink), 0 -8px 18px rgba(10, 4, 25, 0.5); }
+.gold-trim {
+  height: 7px;
+  background: linear-gradient(to bottom, #FFE08A 0 2px, #F7B733 2px 5px, #C98A12 5px);
+}
+.night-bar .bar-sparkle {
+  position: absolute; color: #FFE08A; font-size: 10px; line-height: 1;
+  text-shadow: 0 0 6px rgba(255, 224, 138, 0.9);
+  animation: twinkle 2.6s ease-in-out infinite; pointer-events: none;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  color: #FFE9A8;
+  background: linear-gradient(to bottom, #FFF6D6 0%, #FFD45C 60%, #F2A93B 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 0 var(--color-ink)) drop-shadow(2px 0 0 var(--color-ink)) drop-shadow(-2px 0 0 var(--color-ink))
+          drop-shadow(0 2px 0 var(--color-ink)) drop-shadow(0 -2px 0 var(--color-ink)) drop-shadow(0 3px 0 var(--color-ink))
+          drop-shadow(0 0 10px rgba(255, 200, 80, 0.45));
+  letter-spacing: 0.01em;
+  padding: 0.15em 0.1em;
+}
+
+/* Game HUD header: glossy bar, title plaque + medallion, gem buttons */
+.night-bar-top::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 46%; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02));
+}
+.hud-rivet {
+  position: absolute; bottom: 12px; width: 9px; height: 9px; border-radius: 99px; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #FFF6D6, #F7B733 45%, #8A5A0B 100%);
+  box-shadow: 0 0 0 2px var(--color-ink);
+}
+.brand-badge { position: relative; display: inline-flex; align-items: center; max-width: 100%; padding-left: 26px; }
+.brand-plaque {
+  position: relative; display: flex; align-items: center; min-width: 0; height: 46px;
+  padding: 0 18px 0 34px; border-radius: 14px; border: 3px solid var(--color-ink);
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.16) 0 45%, transparent 45%),
+    linear-gradient(to bottom, #7347C4, #4A2390 60%, #36186C);
+  box-shadow: inset 0 0 0 3px #F7B733, inset 0 0 0 5px rgba(43, 29, 20, 0.55), 0 4px 0 var(--color-ink);
+}
+.brand-plaque::after { /* tiny gold studs on the right edge */
+  content: ''; position: absolute; right: 7px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 99px;
+  background: #FFE08A; box-shadow: 0 0 0 1.5px var(--color-ink);
+}
+.brand-medallion {
+  position: absolute; left: 0; top: 50%; width: 54px; height: 54px; margin-top: -29px;
+  display: grid; place-items: center; border-radius: 99px; border: 3px solid var(--color-ink);
+  background: radial-gradient(circle at 50% 40%, #5A2FA3, #241047 75%);
+  box-shadow: inset 0 0 0 3px #F7B733, inset 0 0 0 5px #8A5A0B, 0 4px 0 var(--color-ink), 0 0 14px rgba(255, 200, 80, 0.35);
+}
+.gem-btn {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0;
+  border-radius: 13px; border: 3px solid var(--color-ink); color: #fff;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0 42%, transparent 42%),
+    linear-gradient(to bottom, #6FD3FF, #2E8FD0 70%, #1E6AA8);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(0, 0, 0, 0.2), 0 4px 0 var(--color-ink);
+  transition: transform 0.06s;
+}
+.gem-btn[aria-pressed='true'] {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0 42%, transparent 42%),
+    linear-gradient(to bottom, #B9A7D6, #7E6BA3 70%, #5E4C82);
+}
+.gem-btn:active { transform: translateY(4px); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 0 0 var(--color-ink); }
+
+/* Icon dock: big game icons on a translucent pill */
+.icon-dock {
+  display: flex; justify-content: space-around; align-items: flex-end; gap: 4px;
+  padding: 6px 10px 8px; border-radius: 999px; background: rgba(20, 8, 40, 0.35);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.dock-item { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 76px; }
+.dock-icon { display: block; filter: drop-shadow(0 3px 0 rgba(43, 29, 20, 0.6)); transition: transform 0.12s; }
+.dock-item:hover .dock-icon { transform: translateY(-3px) rotate(-4deg); }
+.dock-item:active .dock-icon { transform: translateY(2px) scale(0.92); }
+.dock-badge {
+  position: absolute; top: 0; right: 6px; min-width: 22px; height: 22px; padding: 0 5px;
+  display: grid; place-items: center; border-radius: 99px; border: 2.5px solid var(--color-ink);
+  background: #E8414F; color: #fff; font-family: var(--font-display); font-size: 13px; line-height: 1;
+  box-shadow: 0 2px 0 var(--color-ink);
+}
+
+.lantern { transform-origin: 50% 0; animation: lantern-swing 3.4s ease-in-out infinite; }
+.lantern-glow {
+  position: absolute; left: 50%; top: 60%; width: 64px; height: 64px; transform: translate(-50%, -50%);
+  border-radius: 99px; background: radial-gradient(circle, rgba(255, 210, 90, 0.6), transparent 65%);
+  animation: firefly-pulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes lantern-swing { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .night-star, .firefly, .lantern, .lantern-glow, .night-bar .bar-sparkle { animation: none; }
+}
+
+/* leaderboard row: cream capsule, gold-ringed avatar, purple star pill for the score */
+.lr { background: #FFF6DC; border: 2px solid #E9CF8E; border-radius: 14px; padding: 4px 8px; box-shadow: inset 0 1px 0 #fff; --pw: 88px; }
+.lr.is-mine { background: #FFE98A; border-color: #F7B733; box-shadow: 0 0 0 2px #FFE98A, 0 0 14px 3px #F7B733; }
+.lr > img { border-radius: 50%; border: 2px solid #F2B531; object-fit: cover; background: #fff; box-shadow: 0 1px 0 #B9791A; }
+.lr-name { font-weight: 800; color: #3A2412; font-size: 15px; line-height: 1.1; }
+.leader-list .lr-name { font-size: 4.6cqw; }
+.score-pill { flex: none; width: var(--pw); aspect-ratio: 520 / 168; background-size: 100% 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: calc(var(--pw) * 0.12); font-family: var(--font-display); font-size: calc(var(--pw) * 0.22); line-height: 1; color: #fff; text-shadow: 0 2px 0 #2c0b4a, 0 0 4px #2c0b4a; }
+
+/* ---- Quiz game (text answers): lettered gold-rimmed options ---- */
+.qz-list { display: flex; flex-direction: column; gap: 10px; width: min(100%, 420px); margin-inline: auto; }
+.qz-host-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+.qz-choice {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 14px 8px 8px; text-align: left;
+  background: linear-gradient(#FFF8E4, #FBE9B8); border: 4px solid #E8A81C; border-radius: 18px; color: #3A2412;
+  box-shadow: 0 4px 0 #8B4A0E, inset 0 2px 0 #fff; font-weight: 800; cursor: pointer; transition: transform .12s, box-shadow .12s, opacity .2s, filter .2s;
+}
+.qz-choice:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #8B4A0E, inset 0 2px 0 #fff; }
+.qz-choice:disabled { cursor: default; }
+.qz-letter {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FF6B5A, #C4161C 70%); border: 3px solid #F7B733; color: #fff;
+  font-family: var(--font-display); font-size: 20px; text-shadow: 0 2px 0 rgba(90, 10, 10, .6);
+}
+.qz-text { flex: 1; min-width: 0; font-size: 18px; line-height: 1.2; overflow-wrap: anywhere; }
+.qz-mark { flex: none; font-size: 26px; font-weight: 900; }
+.qz-choice.is-selected { background: linear-gradient(#FFF1A8, #FFD84A); border-color: #F7B733; box-shadow: 0 0 0 3px #FFE98A, 0 0 18px 4px #F7B733, 0 4px 0 #8B4A0E; }
+.qz-choice.is-dimmed { opacity: .55; filter: saturate(.7); }
+.qz-choice.is-correct { background: linear-gradient(#C9F7B0, #7ED957); border-color: #2E9B2E; box-shadow: 0 0 0 3px #B6F28F, 0 0 18px 4px #5CCB3C, 0 4px 0 #1F6B1F; opacity: 1; filter: none; }
+.qz-choice.is-correct .qz-mark { color: #1F6B1F; }
+.qz-choice.is-wrong { background: linear-gradient(#FFD0CB, #F27A70); border-color: #C4161C; box-shadow: 0 4px 0 #7A0F12; opacity: 1; filter: none; }
+.qz-choice.is-wrong .qz-mark { color: #8A0F14; }
+.qz-choice.is-host { cursor: default; min-height: 92px; padding: 12px 22px 12px 12px; border-radius: 26px; gap: 18px; }
+.qz-choice.is-host .qz-letter { width: 64px; height: 64px; font-size: 34px; }
+.qz-choice.is-host .qz-text { font-size: clamp(22px, 2.6vw, 40px); }
+.qz-choice.is-host .qz-mark { font-size: 44px; }
+@media (max-height: 800px) { .qz-host-grid { gap: 10px 20px; } .qz-choice.is-host { min-height: 70px; } .qz-choice.is-host .qz-letter { width: 50px; height: 50px; font-size: 26px; } }
+
+/* short phones: tighter options so prompt + options + result card still fit without scrolling */
+@media (max-height: 700px) {
+  .qz-list { gap: 6px; }
+  .qz-choice { min-height: 44px; padding: 4px 10px 4px 5px; border-width: 3px; border-radius: 14px; gap: 9px; }
+  .qz-letter { width: 32px; height: 32px; font-size: 16px; border-width: 2px; }
+  .qz-text { font-size: 16px; }
+  .qz-list.is-reveal { gap: 3px; }
+  .qz-list.is-reveal .qz-choice { min-height: 30px; padding-block: 2px; box-shadow: 0 2px 0 #8B4A0E; }
+  .qz-list.is-reveal .qz-letter { width: 26px; height: 26px; font-size: 13px; }
+  .qz-list.is-reveal .qz-text { font-size: 14px; }
+  .qz-list.is-reveal .qz-mark { font-size: 20px; }
+}
+
+/* ---- Player sheet (host): chibi-girl frame. Art 1199 × 1288; --k = 1 art unit. Slices (800px webp): top 427 / bottom 192 = 640 / 288 units. ---- */
+.sheet-frame {
+  --k: min(calc(94vw / 1199), calc(92dvh / 1100));
+  --s: max(46px, calc(var(--k) * 128));
+  position: relative; box-sizing: border-box; width: calc(var(--k) * 1199); display: flex; flex-direction: column;
+  min-height: calc(var(--k) * 1100); max-height: 92dvh;
+  border-style: solid; border-color: transparent; border-width: calc(var(--k) * 640) 0 calc(var(--k) * 288) 0;
+  border-image: var(--sheet-art) 427 0 192 0 fill stretch;
+  filter: drop-shadow(0 8px 16px rgba(10, 4, 40, 0.5));
+}
+/* the cream paper (x 125–1075, y 345–1090 in art units) starts inside the top border, hence the negative margins */
+.sheet-body {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  margin: calc(var(--k) * -295) calc(var(--k) * 125) calc(var(--k) * -80);
+}
+.sheet-head { flex: none; display: flex; align-items: center; justify-content: center; padding: 6px 0 8px; }
+.sheet-title {
+  margin: 0; font-family: var(--font-display); font-size: clamp(22px, calc(var(--k) * 78), 44px); line-height: 1.15; color: #B3141C;
+  -webkit-text-stroke: 5px #FFE08A; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(122, 20, 10, 0.35);
+}
+/* centre of the medallion = 118 units above the frame's bottom edge; the padding box ends 288 units above it */
+.sheet-close {
+  position: absolute; left: 50%; bottom: calc(var(--k) * -170 - var(--s) / 2); translate: -50% 0; width: var(--s); height: var(--s);
+  display: grid; place-items: center; border-radius: 50%; border: 3px solid #F7B733; cursor: pointer;
+  background: radial-gradient(circle at 35% 30%, #FF6B5A, #C4161C 70%); box-shadow: 0 3px 0 #7A0F12, inset 0 2px 0 rgba(255, 255, 255, .35);
+}
+.sheet-close svg { width: 46%; height: 46%; }
+.sheet-close:active { transform: translateY(2px); box-shadow: 0 1px 0 #7A0F12; }
+.sheet-list {
+  flex: 1 1 auto; min-height: 0; margin: 0; padding: 4px 2px 10px; list-style: none; overflow-y: auto; overscroll-behavior: contain;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px; align-content: start;
+}
+.sheet-card { display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: #fff; border: 3px solid #E8A81C; border-radius: 16px; box-shadow: 0 3px 0 #B9791A; }
+.sheet-card.is-offline { opacity: .55; }
+.sheet-card > img { border-radius: 50%; border: 2px solid #F2B531; background: #fff; object-fit: cover; flex: none; }
+.sheet-name { display: block; font-weight: 800; color: #3A2412; font-size: 16px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-sub { display: block; font-size: 12px; color: #7A5A3A; }
+.sheet-kick { flex: none; border: 2px solid #2B1D14; background: #E5484D; color: #fff; border-radius: 10px; padding: 4px 9px; font-weight: 700; font-size: 13px; }
+.sheet-kick:active { transform: translateY(1px); }
+
+/* ---- Host sub-pages: title plate, blossom panels, gold pills ----
+   Blossom frame art 800×663: slices top 106 / sides 165 / bottom 76; the gold rail itself is ≈25 art px wide.
+   Tab art 408×111: the rounded caps are ≈70 px each, the middle stretches with the title. --fk = art px → CSS px. */
+.page-banner { width: min(100%, 500px); }
+.art-banner { position: relative; display: block; width: min(100%, 440px, 46vh); height: auto; margin: 0 auto -4px; filter: drop-shadow(0 6px 10px rgba(10, 4, 40, 0.5)); }
+.art-banner.is-wide { width: min(100%, 560px); }
+/* invisible button over a pill painted into the banner art */
+.art-banner-hit { position: absolute; padding: 0; border: 0; border-radius: 999px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s, transform .1s; }
+.art-banner-hit:hover { background: rgba(255, 255, 255, 0.16); }
+.art-banner-hit:active { transform: translateY(1px); background: rgba(0, 0, 0, 0.12); }
+.art-banner-hit:focus-visible { outline: 3px solid #FFE600; outline-offset: 2px; }
+.art-banner-hit:disabled { cursor: not-allowed; background: rgba(40, 20, 60, 0.35); }
+.page-banner .prompt-text { line-height: 1.2; }
+.blossom-panel {
+  --fk: 0.62; position: relative; isolation: isolate; color: var(--color-ink);
+  padding: calc(60px * var(--fk) + 10px) calc(25px * var(--fk) + 16px) calc(36px * var(--fk) + 14px);
+}
+.blossom-panel.is-sm { --fk: 0.46; }
+.blossom-panel.has-tab { padding-top: calc(111px * var(--fk) + 10px); }
+.blossom-panel::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-style: solid; border-color: transparent;
+  border-width: calc(106px * var(--fk)) calc(165px * var(--fk)) calc(76px * var(--fk)) calc(165px * var(--fk));
+  border-image: var(--bp-frame) 106 165 76 165 fill stretch;
+  filter: drop-shadow(0 8px 12px rgba(10, 4, 40, 0.45));
+}
+.bp-tab {
+  position: absolute; top: calc(-6px * var(--fk)); left: 50%; translate: -50% 0; margin: 0; box-sizing: border-box;
+  max-width: calc(100% - 40px); height: calc(111px * var(--fk)); min-width: calc(300px * var(--fk));
+  display: block; text-align: center; padding: 0 6px;
+  border-style: solid; border-color: transparent; border-width: 0 calc(70px * var(--fk));
+  border-image: var(--bp-tab) 0 70 fill stretch;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--font-display); font-size: max(17px, calc(44px * var(--fk))); line-height: calc(104px * var(--fk)); color: #FFF6D0;
+  -webkit-text-stroke: max(3px, calc(6px * var(--fk))) #5C0A10; paint-order: stroke fill; text-shadow: 0 2px 0 #5C0A10;
+}
+/* cards inside a panel: lighter, so they don't vanish on the cream board */
+.host-shell .blossom-panel .card-solid {
+  background: #FFFDF6; border: 3px solid #E9B44C; border-radius: 14px; box-shadow: 0 3px 0 #C98A12;
+}
+.host-shell .blossom-panel .card-solid.is-open { border-color: #F2A900; box-shadow: 0 0 0 3px #FFD45C, 0 3px 0 #C98A12; }
+.gold-pill {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 4px 16px; border-radius: 999px;
+  border: 3px solid var(--color-ink); background: linear-gradient(#FFE89A 50%, #F7B733 50%);
+  box-shadow: 0 3px 0 var(--color-ink); font-weight: 700; color: var(--color-ink); white-space: nowrap;
+  transition: translate 75ms;
+}
+.gold-pill:active { translate: 0 3px; box-shadow: none; }
+.panel-dashed {
+  width: 100%; min-height: 48px; border-radius: 14px; border: 3px dashed rgba(92, 10, 16, 0.45); background: rgba(255, 255, 255, 0.45);
+  font-weight: 700; color: #7A3E12;
+}
+.panel-dashed:disabled { opacity: 0.4; }
+@media print {
+  .blossom-panel { padding: 0; }
+  .blossom-panel::before { display: none; }
+  .bp-tab { position: static; translate: none; border: 0; height: auto; padding: 0 0 8px; color: #000; -webkit-text-stroke: 0; text-shadow: none; display: block; text-align: left; max-width: none; }
+  .lobby-root { display: none !important; }
+}
+@media (max-width: 480px) {
+  .blossom-panel { --fk: 0.5; }
+  .blossom-panel.is-sm { --fk: 0.42; }
+}
+
+/* ---- Host in-game: leaderboard rows (same row + score pill as the phone) and the final podium ---- */
+.page-banner.is-host { width: min(620px, 42vw, 60vh); }
+.host-lb-list { display: grid; gap: max(6px, 1.2vh) 22px; margin: 0; padding: 0; list-style: none; }
+.host-lb-list.is-two { grid-template-columns: 1fr; }
+@media (min-width: 1000px) { .host-lb-list.is-two { grid-template-rows: repeat(5, auto); grid-auto-flow: column; grid-auto-columns: 1fr; } }
+.host-lb .lr { --pw: clamp(120px, 18vh, 230px); --bw: clamp(40px, 7.4vh, 76px); gap: 14px; padding: max(3px, 0.5vh) 14px; border-radius: 18px; }
+.host-lb .lr > img { width: clamp(36px, 6.4vh, 68px); height: auto; }
+.host-lb .lr-name { font-size: clamp(18px, 3.5vh, 38px); }
+.host-lb .lr.is-mine { transition: box-shadow .5s; }
+.podium-who { position: relative; }
+.podium-who .avatar-img { width: clamp(64px, 13vh, 140px); height: auto; border-radius: 50%; border: 3px solid #F2B531; background: #fff; box-shadow: 0 3px 0 #B9791A; }
+.podium-medal { position: absolute; right: -22px; bottom: -10px; display: block; }
+.podium-name { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: clamp(20px, 4vh, 30px); font-weight: 800; color: #fff; text-shadow: 0 2px 0 var(--color-ink), 0 0 8px rgba(0,0,0,.4); }
+.podium-pillar {
+  --pw: clamp(130px, 17vh, 200px); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  border: 5px solid #F7B733; border-bottom: 0; border-radius: 18px 18px 0 0;
+  background: radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.28), transparent 60%), linear-gradient(#D7262E, #8E0F16);
+  box-shadow: 0 0 0 3px #7A3E12, inset 0 4px 0 rgba(255,224,138,.5), 0 0 24px rgba(255,196,80,.35);
+}
+.podium-pillar.is-1 { background: radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.35), transparent 60%), linear-gradient(#FFCF4A, #E08A00); }
+.podium-rank { margin: 0; padding-top: 1vh; font-family: var(--font-display); font-size: clamp(36px, 7vh, 60px); line-height: 1; color: #FFF6D0; -webkit-text-stroke: 6px #5C0A10; paint-order: stroke fill; text-shadow: 0 3px 0 #5C0A10; }
+
+/* Host games page: a game's own button art (2038×651). The blank counts pill is x 43.9–70.4%, centred at y 71.9%. */
+.game-art-btn {
+  position: relative; display: block; width: 100%; aspect-ratio: 2038 / 651; padding: 0; border: 0; cursor: pointer;
+  background: center / 100% 100% no-repeat; container-type: inline-size; -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 6px 10px rgba(10, 4, 40, 0.5)); transition: transform 0.15s, filter 0.2s;
+}
+.game-art-btn:hover { transform: translateY(-2px); filter: brightness(1.08) drop-shadow(0 8px 14px rgba(40, 140, 255, 0.45)); }
+.game-art-btn:active { transform: translateY(1px) scale(0.98); }
+.game-art-count {
+  position: absolute; left: 44%; width: 26.4%; top: 71.9%; translate: 0 -50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-align: left; font-weight: 800; font-size: 3.6cqw; line-height: 1; color: #fff; text-shadow: 0 0.3cqw 0 rgba(10, 4, 60, 0.85);
+}
+
+/* ---- Neon packages panel (art 1137×1238; slices top 300 / bottom 270; tab x 270–870, centred at y 92) ---- */
+.neon-wrap { container-type: inline-size; width: min(100%, 640px); margin-inline: auto; }
+.neon-panel {
+  --k: calc(100cqw / 1137); position: relative; box-sizing: border-box; display: flex; flex-direction: column;
+  min-height: calc(var(--k) * 700); color: #EAF6FF;
+  border-style: solid; border-color: transparent; border-width: calc(var(--k) * 300) 0 calc(var(--k) * 270);
+  border-image: var(--neon-art) 300 0 270 fill stretch;
+  filter: drop-shadow(0 8px 16px rgba(4, 10, 60, 0.55));
+}
+.neon-tab {
+  position: absolute; top: calc(var(--k) * -300 + var(--k) * 92); left: 50%; translate: -50% -50%; margin: 0;
+  max-width: calc(var(--k) * 520); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--font-display); font-size: max(18px, calc(var(--k) * 64)); line-height: 1.1; color: #fff;
+  text-shadow: 0 0 6px #4FD2FF, 0 0 14px rgba(79, 210, 255, 0.8), 0 2px 0 #0A2470;
+}
+.neon-body { position: relative; flex: 1 1 auto; margin: calc(var(--k) * -105) max(10px, calc(var(--k) * 60)) calc(var(--k) * -150); }
+.host-shell .neon-panel .card-solid {
+  background: linear-gradient(rgba(30, 90, 220, 0.55), rgba(10, 40, 150, 0.6)); color: #fff;
+  border: 2px solid #5FD8FF; border-radius: 14px; box-shadow: 0 0 10px rgba(79, 210, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.host-shell .neon-panel .card-solid.is-open { border-color: #9BEAFF; box-shadow: 0 0 0 2px #9BEAFF, 0 0 18px rgba(79, 210, 255, 0.7); }
+.neon-panel .panel-dashed { border-color: rgba(120, 220, 255, 0.7); background: rgba(10, 40, 140, 0.35); color: #BFF0FF; }
+.neon-panel .border-ink\/15 { border-color: rgba(160, 230, 255, 0.3); }
+
+/* ---- Packages page (list of a game's packages on the neon panel) ---- */
+.art-banner-label {
+  position: absolute; display: grid; place-items: center; pointer-events: none; padding-right: 3%;
+  font-weight: 800; font-size: clamp(14px, 4.4cqw, 26px); color: #2A1404; transform: skewX(-8deg);
+}
+.art-banner { container-type: inline-size; }
+.neon-tab { display: inline-flex; align-items: center; gap: 0.35em; }
+.pk-search {
+  flex: 1 1 120px; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+  border: 2px solid rgba(150, 225, 255, 0.75); background: rgba(6, 22, 90, 0.55); color: #BFE9FF;
+}
+.pk-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #fff; font-size: 16px; }
+.pk-search input::placeholder { color: rgba(200, 230, 255, 0.7); }
+.pk-search:focus-within { border-color: #FFE600; box-shadow: 0 0 0 3px rgba(255, 230, 0, 0.35); }
+.pk-new {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 2px solid #FFF3A6; background: linear-gradient(#FFE45C, #F6B712); color: #2A1404; font-weight: 800;
+  box-shadow: 0 3px 0 #B57B00, 0 0 12px rgba(255, 210, 60, 0.45);
+}
+.pk-new:active { translate: 0 2px; box-shadow: 0 1px 0 #B57B00; }
+.pk-new:disabled { opacity: 0.5; }
+.pk-row {
+  position: relative; padding: 10px 12px; border-radius: 16px; color: #1E1546;
+  background: linear-gradient(#F7F5FF, #E3E3FA); border: 2px solid #C8CBF5; box-shadow: 0 3px 0 rgba(20, 20, 90, 0.35);
+}
+.pk-row.is-current { border: 3px solid #FFC93C; box-shadow: 0 0 0 2px rgba(255, 220, 90, 0.45), 0 0 18px rgba(255, 200, 60, 0.55), 0 3px 0 rgba(120, 80, 0, 0.4); }
+.pk-row.is-menu { z-index: 5; }
+.pk-thumb {
+  flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(140deg, #6E4BFF, #2A1E9E); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 2px 0 rgba(20, 10, 80, 0.4);
+}
+/* the icon is the left part of the game's button art: x 1–29%, y 5–98% of 2038×651 */
+.pk-thumb-art { width: 90%; height: 90%; background-repeat: no-repeat; background-size: 357% 107%; background-position: 1.4% 50%; }
+.pk-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; font-weight: 800; line-height: 1.2; }
+.pk-meta { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #39316E; line-height: 1.5; white-space: nowrap; overflow: hidden; }
+.pk-chosen {
+  flex: none; padding: 4px 12px; border-radius: 999px; border: 2px solid #2A1404; background: #FFE45C; color: #2A1404;
+  font-size: 14px; font-weight: 800; white-space: nowrap;
+}
+.pk-use {
+  flex: none; padding: 5px 16px; border-radius: 999px; border: 2px solid #0B1E6B; color: #fff; font-size: 14px; font-weight: 800; white-space: nowrap;
+  background: linear-gradient(#3C7BFF, #1638B8); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 #0B1E6B;
+}
+.pk-use:active { translate: 0 1px; }
+.pk-use:disabled { opacity: 0.5; }
+.pk-more { flex: none; display: grid; place-items: center; width: 30px; height: 40px; border-radius: 10px; color: #1E1546; }
+.pk-more svg { fill: currentColor; }
+.pk-more:hover, .pk-more[aria-expanded='true'] { background: rgba(40, 30, 120, 0.12); }
+.pk-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 170px; padding: 6px; border-radius: 14px;
+  background: #fff; border: 2px solid #C8CBF5; box-shadow: 0 10px 24px rgba(10, 10, 60, 0.4); display: grid;
+}
+.pk-menu button { padding: 9px 12px; border-radius: 10px; text-align: left; font-weight: 700; color: #1E1546; white-space: nowrap; }
+.pk-menu button:hover { background: #EEF0FF; }
+.pk-menu button:disabled { opacity: 0.45; }
+.pk-menu button.is-danger { color: #C4161C; }
+.pk-details { margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(60, 50, 140, 0.15); display: grid; gap: 8px; justify-items: start; }
+.pk-pages { display: flex; justify-content: center; gap: 10px; padding-top: 4px; }
+.pk-pages button {
+  width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(150, 225, 255, 0.8); background: rgba(6, 22, 90, 0.6);
+  color: #fff; font-weight: 800; font-size: 16px; line-height: 1;
+}
+.pk-pages button.is-on { background: linear-gradient(#FFE45C, #F6B712); color: #2A1404; border-color: #FFF3A6; }
+.pk-pages button:disabled { opacity: 0.4; }
+.purple-pill {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 30px; border-radius: 999px; color: #fff;
+  font-size: 19px; font-weight: 800; border: 3px solid #E7B6FF;
+  background: linear-gradient(#8A3CFF, #4B12B8); box-shadow: 0 0 0 2px #3A0C86, 0 0 18px rgba(190, 110, 255, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 2px 0 rgba(30, 0, 80, 0.6);
+}
+.purple-pill:active { translate: 0 2px; }
+@media (max-width: 480px) {
+  .pk-row { padding: 8px; }
+  .pk-row > div { gap: 6px; }
+  .pk-row button[aria-expanded] { gap: 8px; }
+  .pk-thumb { width: 48px; height: 48px; border-radius: 12px; }
+  .pk-name { font-size: 16px; }
+  .pk-meta { font-size: 12px; gap: 4px; }
+  .pk-chosen, .pk-use { padding: 3px 9px; font-size: 12px; }
+  .pk-more { width: 22px; }
+  .pk-search { min-height: 40px; padding: 0 10px; }
+  .pk-search input { font-size: 14px; }
+  .pk-new { min-height: 40px; padding: 0 12px; font-size: 14px; }
+  .purple-pill { min-height: 50px; padding: 0 22px; font-size: 16px; }
+}

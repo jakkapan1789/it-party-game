@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+server/uploads/*
+!server/uploads/.gitkeep
+!server/uploads/placeholder-*.svg
+server/data/reports/
+.DS_Store
+# art drop folder: sources are converted into client/src/lobby/assets and then cleared
+prep-asset/
+*.tmp
