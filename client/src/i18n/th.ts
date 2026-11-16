@@ -85,6 +85,7 @@ export const th = {
     title: 'Host ควบคุมเกม',
     pin: 'PIN ผู้ดูแล',
     login: 'เข้าสู่ระบบ',
+    pinRequired: 'กรุณาใส่ PIN',
     createRoom: 'สร้างห้อง',
     roomCode: 'รหัสห้อง',
     scanToJoin: 'สแกนเพื่อเข้าร่วม',

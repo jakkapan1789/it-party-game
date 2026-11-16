@@ -106,9 +106,9 @@ export default function AdminRoom() {
     };
   }, []);
 
-  const login = (e: FormEvent) => {
-    e.preventDefault();
-    if (!pin) return;
+  const login = (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!pin) return setError(th.admin.pinRequired);
     setError('');
     adminPin.set(pin);
     socket.emit('admin:auth', { pin });
@@ -135,12 +135,13 @@ export default function AdminRoom() {
                 inputMode="numeric"
                 autoFocus
                 value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                onChange={(e) => { setPin(e.target.value); setError(''); }}
                 className="h-14 w-full rounded-xl border-[3px] border-ink bg-white px-3 text-center font-display text-3xl outline-none focus:ring-4 focus:ring-[#FFE600]"
               />
               {error && <p role="alert" className="font-semibold text-stop-dark">{error}</p>}
             </BlossomPanel>
-            <Button3D type="submit" block disabled={!pin}>{th.admin.login}</Button3D>
+            {/* Enter in the PIN field still submits: a single-field form submits implicitly */}
+            <BannerButton onClick={() => login()}>{th.admin.login}</BannerButton>
           </form>
         ) : (
           <BlossomPanel title={th.admin.menu} className="space-y-3">
